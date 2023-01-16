@@ -80,7 +80,6 @@ app.post("/messages", async (req, res) => {
     }
     
     if (validaMensagem === false) {
-        const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
     }
     const existeDestinatario = await db.collection("participants").findOne({ name: mensagem.to });
@@ -95,6 +94,7 @@ app.post("/messages", async (req, res) => {
         type: mensagem.type,
         time: dayjs().format("HH:mm:ss")
     })
+    return res.sendStatus(201);
 
 })
 
