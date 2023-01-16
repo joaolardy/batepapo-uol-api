@@ -115,10 +115,12 @@ app.post("/status", async (req, res) => {
 })
 
 setInterval(async () => {
+    try{
         const listaParticipantes = await db.collection("participants").find().toArray();
-        listaParticipantes.forEach( async(participante) => {
+        listaParticipantes.forEach(async (participante) => {
 
             let dataAgora = Date.now();
+            console.log(dataAgora, '   ', participante.lastStatus);
             if ((dataAgora - participante.lastStatus) > 10000) {
 
                 await db.collection("messages").insertOne({
@@ -128,8 +130,12 @@ setInterval(async () => {
                     type: 'status',
                     time: dayjs().format("HH:mm:ss")
                 })
+                await db.collection("participants").deleteOne({name: participante.name})
             }
         });
+    }catch (error) {
+        console.log('erro na mensagem de saida');
+    }
 }, 15000);
 
 
