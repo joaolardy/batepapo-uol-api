@@ -18,7 +18,8 @@ const participanteSchema = joi.object({
 const mensagemSchema = joi.object({
     to: joi.string().min(1).required(),
     text: joi.string().min(1).required(),
-    type: joi.string().valid("message", "private_message").required()
+    type: joi.string().valid("message", "private_message").required(),
+    time: joi.string()
 });
 
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
@@ -45,12 +46,12 @@ app.post("/participants", async (req, res) => {
         //verifica se o nome já está em uso
         const verificaNome = await db.collection("participants").findOne({ name: participante.name });
         if (verificaNome) {
-            console.log(res.sendStatus(409));
+            //console.log(res.sendStatus(409));
             return res.sendStatus(409);
         }
         //passou pelas verificacoes, inclui no bd
         await db.collection("participants").insertOne({ name: participante.name, lastStatus: Date.now() });
-        console.log(db.collection("participants"));
+        //console.log(db.collection("participants"));
 
         const mensagemChegada = {
             from: participante.name,
@@ -73,7 +74,17 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages", async (req, res) => {
     const mensagem = req.body;
-    const validaMensagem = mensagemSchema.validate(mensagem, { abortEarly: true })
+    const {to, text, type } = req.body;
+    const {participant} = req.headers;
+    const mensagem2 = {
+        from: participant,
+        to,
+        text,
+        type,
+        time: dayjs().format("HH:mm:ss")
+    }
+    console.log(mensagem);
+    const validaMensagem = mensagemSchema.validate(mensagem2, { abortEarly: false })
     if (validaMensagem.error) {
         return res.status(422);
     }
@@ -120,7 +131,7 @@ setInterval(async () => {
         listaParticipantes.forEach(async (participante) => {
 
             let dataAgora = Date.now();
-            console.log(dataAgora, '   ', participante.lastStatus);
+            //console.log(dataAgora, '   ', participante.lastStatus);
             if ((dataAgora - participante.lastStatus) > 10000) {
 
                 await db.collection("messages").insertOne({
