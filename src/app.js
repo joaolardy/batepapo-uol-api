@@ -16,8 +16,8 @@ const participanteSchema = joi.object({
 })
 
 const mensagemSchema = joi.object({
-    to: joi.string().min(1),
-    text: joi.string().min(1),
+    to: joi.string().min(1).required(),
+    text: joi.string().min(1).required(),
     type: joi.string().valid("message", "private_message").required()
 });
 
@@ -73,14 +73,9 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages", async (req, res) => {
     const mensagem = req.body;
-    console.log(mensagem);
-    let validaMensagem;
-    if(!mensagem.to || !mensagem.text || mensagem.type != ('message' || "private_message")){
-        validaMensagem === false;
-    }
-    
-    if (validaMensagem === false) {
-        return res.status(422).send(errors);
+    const validaMensagem = mensagemSchema.validate(mensagem, { abortEarly: true })
+    if (validaMensagem.error) {
+        return res.status(422);
     }
     const existeDestinatario = await db.collection("participants").findOne({ name: mensagem.to });
     console.log(existeDestinatario);
@@ -112,12 +107,31 @@ app.get("/messages", async (req, res) => {
 app.post("/status", async (req, res) => {
     const headerStatus = req.headers;
     const participanteExiste = await db.collection("participants").findOne({ name: headerStatus.user });
-    if(participanteExiste === null){
+    if (participanteExiste === null) {
         return res.sendStatus(404);
     }
-    await db.collection("participants").updateOne({name: headerStatus.user}, { $set : {lastStatus: Date.now()} })
+    await db.collection("participants").updateOne({ name: headerStatus.user }, { $set: { lastStatus: Date.now() } })
     return res.sendStatus(200);
 })
+
+setInterval(async () => {
+        const listaParticipantes = await db.collection("participants").find().toArray();
+        listaParticipantes.forEach( async(participante) => {
+
+            let dataAgora = Date.now();
+            if ((dataAgora - participante.lastStatus) > 10000) {
+
+                await db.collection("messages").insertOne({
+                    from: participante.name,
+                    to: 'Todos',
+                    text: 'sai da sala...',
+                    type: 'status',
+                    time: dayjs().format("HH:mm:ss")
+                })
+            }
+        });
+}, 15000);
+
 
 app.listen(PORT, () => {
     console.log(`a porta foi configurada com sucesso}`)
