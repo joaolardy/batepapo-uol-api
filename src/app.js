@@ -73,11 +73,13 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages", async (req, res) => {
     const mensagem = req.body;
-    let validaMensagem = mensagemSchema.validate(
-        mensagem,
-        { abortEarly: false }
-    )
-    if (validaMensagem.error) {
+    console.log(mensagem);
+    let validaMensagem;
+    if(!mensagem.to || !mensagem.text || mensagem.type != ('message' || "private_message")){
+        validaMensagem === false;
+    }
+    
+    if (validaMensagem === false) {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
     }
