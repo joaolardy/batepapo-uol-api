@@ -19,7 +19,6 @@ const mensagemSchema = joi.object({
     to: joi.string().min(1).required(),
     text: joi.string().min(1).required(),
     type: joi.string().valid("message", "private_message").required(),
-    time: joi.string()
 });
 
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
@@ -73,25 +72,17 @@ app.get("/participants", async (req, res) => {
 })
 
 app.post("/messages", async (req, res) => {
-    const mensagem = req.body;
-    const {to, text, type } = req.body;
-    const {participant} = req.headers;
-    const mensagem2 = {
-        from: participant,
-        to,
-        text,
-        type,
-        time: dayjs().format("HH:mm:ss")
-    }
+    const mensagem = req.body
+    const mensagemHeader = req.headers;
     console.log(mensagem);
-    const validaMensagem = mensagemSchema.validate(mensagem2, { abortEarly: false })
+    const validaMensagem = mensagemSchema.validate(mensagem, { abortEarly: false })
     if (validaMensagem.error) {
         return res.status(422);
     }
     const existeDestinatario = await db.collection("participants").findOne({ name: mensagem.to });
     console.log(existeDestinatario);
     if (existeDestinatario === null && mensagem.to !== 'Todos') {
-        return res.send(console.log('destinatario nao existe'));
+        return res.sendStatus(422);
     }
     await db.collection("messages").insertOne({
         from: req.headers.user,
